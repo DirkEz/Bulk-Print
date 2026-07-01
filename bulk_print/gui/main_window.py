@@ -145,7 +145,6 @@ class MainWindow(QMainWindow):
         settings_row.addWidget(orientation_label)
         settings_row.addWidget(self.orientation_combo)
         settings_row.addStretch(1)
-        settings_row.addWidget(self.update_button)
 
         button_row = QHBoxLayout()
         button_row.setSpacing(10)
@@ -206,19 +205,24 @@ class MainWindow(QMainWindow):
         self.cancel_button.setObjectName("DangerButton")
         self.start_button.setObjectName("PrimaryButton")
         self.printer_settings_button.setObjectName("QuietButton")
-        self.update_button.setObjectName("QuietButton")
+        self.update_button.setObjectName("FooterButton")
         self.current_label.setObjectName("StatusLabel")
         self.count_label.setObjectName("StatusLabel")
         self.version_label.setObjectName("VersionLabel")
         self.count_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.printer_combo.setMinimumHeight(40)
+        footer_row = QHBoxLayout()
+        footer_row.setSpacing(10)
+        footer_row.addWidget(self.version_label)
+        footer_row.addWidget(self.update_button)
+        footer_row.addStretch(1)
+        self.update_button.setMinimumHeight(26)
         for button in (
             self.add_button,
             self.clear_button,
             self.cancel_button,
             self.start_button,
             self.printer_settings_button,
-            self.update_button,
         ):
             button.setMinimumHeight(38)
 
@@ -230,65 +234,65 @@ class MainWindow(QMainWindow):
         root.addWidget(top_panel)
         root.addWidget(file_panel, 1)
         root.addWidget(status_panel)
-        root.addWidget(self.version_label, alignment=Qt.AlignmentFlag.AlignLeft)
+        root.addLayout(footer_row)
         self.setCentralWidget(central)
         self.setStyleSheet(
             """
             QWidget#AppRoot {
-                background: #f4f7fb;
+                background: #f2f9fd;
             }
             QWidget {
                 font-family: Segoe UI;
                 font-size: 10.5pt;
-                color: #172033;
+                color: #142436;
             }
             QLabel#Title {
                 font-size: 25pt;
                 font-weight: 700;
-                color: #121826;
+                color: #102234;
             }
             QLabel#Subtitle {
-                color: #607087;
+                color: #5f7388;
                 font-size: 10pt;
             }
             QLabel#FieldLabel {
-                color: #3d4a5c;
+                color: #365268;
                 font-weight: 600;
                 min-width: 58px;
             }
             QLabel#StatusLabel {
-                color: #4b5c73;
+                color: #456176;
                 font-size: 10pt;
             }
             QLabel#VersionLabel {
-                color: #8390a4;
+                color: #5f9dca;
                 font-size: 9pt;
                 padding-left: 2px;
             }
             QLabel#DropHint {
-                color: #51617a;
-                background: #f8fafc;
-                border: 1px dashed #b8c4d6;
+                color: #236b91;
+                background: #f3fbff;
+                border: 1px dashed #8fd6f4;
                 border-radius: 12px;
                 font-weight: 600;
             }
             QFrame#Panel {
                 background: #ffffff;
-                border: 1px solid #e1e7ef;
+                border: 1px solid #d8edf7;
                 border-radius: 14px;
             }
             QComboBox, QSpinBox {
                 background: #ffffff;
-                border: 1px solid #cfd8e6;
+                border: 1px solid #bfdce9;
                 border-radius: 10px;
                 padding: 7px 36px 7px 12px;
-                selection-background-color: #dbeafe;
+                selection-background-color: #d8f4ff;
             }
             QComboBox:hover, QSpinBox:hover {
-                border-color: #8da2c0;
+                border-color: #69c7ec;
             }
             QComboBox:focus, QSpinBox:focus {
-                border-color: #2563eb;
+                border-color: #35b8e8;
             }
             QSpinBox {
                 min-width: 72px;
@@ -319,78 +323,95 @@ class MainWindow(QMainWindow):
                 image: none;
                 border-left: 5px solid transparent;
                 border-right: 5px solid transparent;
-                border-top: 6px solid #64748b;
+                border-top: 6px solid #4d89ad;
                 margin-right: 12px;
             }
             QTableWidget {
                 background: #ffffff;
-                alternate-background-color: #f8fafc;
-                border: 1px solid #e3e9f2;
+                alternate-background-color: #f7fcff;
+                border: 1px solid #d8edf7;
                 border-radius: 12px;
                 padding: 0;
-                selection-background-color: #dbeafe;
-                selection-color: #172033;
+                selection-background-color: #d8f4ff;
+                selection-color: #142436;
             }
             QTableWidget::item {
-                border-bottom: 1px solid #eef2f7;
+                border-bottom: 1px solid #e9f5fa;
                 padding: 8px;
             }
             QTextEdit {
-                background: #f8fafc;
-                border: 1px solid #e3e9f2;
+                background: #f7fcff;
+                border: 1px solid #d8edf7;
                 border-radius: 12px;
                 padding: 10px;
-                color: #3d4a5c;
+                color: #365268;
             }
             QHeaderView::section {
-                background: #f1f5f9;
+                background: #edf9fe;
                 border: 0;
-                border-bottom: 1px solid #e3e9f2;
+                border-bottom: 1px solid #d8edf7;
                 padding: 10px;
                 font-weight: 600;
-                color: #344256;
+                color: #294d66;
             }
             QPushButton {
                 border-radius: 10px;
                 padding: 8px 15px;
                 font-weight: 600;
                 background: #ffffff;
-                border: 1px solid #cfd8e6;
-                color: #243246;
+                border: 1px solid #bfdce9;
+                color: #20394d;
             }
             QPushButton:hover {
-                background: #f1f5fb;
-                border-color: #9fb0c8;
+                background: #effaff;
+                border-color: #69c7ec;
             }
             QPushButton:pressed {
-                background: #e8eef7;
+                background: #ddf4fd;
             }
             QPushButton:disabled {
-                color: #9aa8ba;
-                background: #eef2f7;
-                border-color: #dde5ef;
+                color: #9cafbd;
+                background: #eef6fa;
+                border-color: #dbeaf1;
             }
             QPushButton#PrimaryButton {
-                background: #1f6feb;
+                background: #35b8e8;
                 color: #ffffff;
-                border-color: #1f6feb;
+                border-color: #35b8e8;
             }
             QPushButton#PrimaryButton:hover {
-                background: #155bd1;
-                border-color: #155bd1;
+                background: #239fd3;
+                border-color: #239fd3;
             }
             QPushButton#SecondaryButton {
-                background: #eef6ff;
-                border-color: #bed6f5;
-                color: #174ea6;
+                background: #e8f8ff;
+                border-color: #abe3f7;
+                color: #16769f;
             }
             QPushButton#SecondaryButton:hover {
-                background: #e1efff;
-                border-color: #8bbbf0;
+                background: #d9f3fe;
+                border-color: #74d0ef;
             }
             QPushButton#QuietButton {
                 background: #ffffff;
-                color: #4b5c73;
+                color: #456176;
+            }
+            QPushButton#FooterButton {
+                background: transparent;
+                border: 1px solid transparent;
+                color: #238dbf;
+                padding: 3px 8px;
+                border-radius: 8px;
+                font-size: 9pt;
+                font-weight: 600;
+            }
+            QPushButton#FooterButton:hover {
+                background: #e8f8ff;
+                border-color: #b8e8f8;
+            }
+            QPushButton#FooterButton:pressed {
+                background: #d9f3fe;
+                border-color: #8fd6f4;
             }
             QPushButton#DangerButton {
                 background: #fff5f5;
@@ -421,14 +442,14 @@ class MainWindow(QMainWindow):
                 border-color: #fda4af;
             }
             QProgressBar {
-                background: #e6edf6;
+                background: #dceff7;
                 border: 0;
                 border-radius: 7px;
                 min-height: 14px;
                 max-height: 14px;
             }
             QProgressBar::chunk {
-                background: #1f6feb;
+                background: #35b8e8;
                 border-radius: 7px;
             }
             """
