@@ -80,6 +80,7 @@ class MainWindow(QMainWindow):
         self.printer_combo = QComboBox()
         self.printer_settings_button = QPushButton("Printerinstellingen")
         self.update_button = QPushButton("Updates zoeken")
+        self.help_button = QPushButton("Help")
         self.add_button = QPushButton("Bestanden toevoegen")
         self.clear_button = QPushButton("Lijst leegmaken")
         self.start_button = QPushButton("Print starten")
@@ -214,6 +215,7 @@ class MainWindow(QMainWindow):
         self.start_button.setObjectName("PrimaryButton")
         self.printer_settings_button.setObjectName("QuietButton")
         self.update_button.setObjectName("FooterButton")
+        self.help_button.setObjectName("FooterButton")
         self.current_label.setObjectName("StatusLabel")
         self.count_label.setObjectName("StatusLabel")
         self.version_label.setObjectName("VersionLabel")
@@ -222,9 +224,11 @@ class MainWindow(QMainWindow):
         footer_row = QHBoxLayout()
         footer_row.setSpacing(10)
         footer_row.addWidget(self.version_label)
+        footer_row.addWidget(self.help_button)
         footer_row.addWidget(self.update_button)
         footer_row.addStretch(1)
         self.update_button.setMinimumHeight(26)
+        self.help_button.setMinimumHeight(26)
         for button in (
             self.add_button,
             self.clear_button,
@@ -482,6 +486,7 @@ class MainWindow(QMainWindow):
         self.cancel_button.clicked.connect(self.cancel_printing)
         self.printer_settings_button.clicked.connect(self.open_selected_printer_preferences)
         self.update_button.clicked.connect(self.check_updates_manually)
+        self.help_button.clicked.connect(self.show_manual)
 
     def _load_printers(self) -> None:
         self.printer_combo.clear()
@@ -591,6 +596,23 @@ class MainWindow(QMainWindow):
             open_printer_preferences(printer)
         except Exception as exc:
             self.show_warning_popup("Printerinstellingen", f"Printerinstellingen konden niet worden geopend:\n{exc}")
+
+    def show_manual(self) -> None:
+        self.show_info_popup(
+            "Help",
+            "Printer: kies de Windows-printer waar alle bestanden naartoe moeten.\n\n"
+            "Printerinstellingen: opent de Windows-instellingen van de gekozen printer, bijvoorbeeld papierformaat, lade of dubbelzijdig printen.\n\n"
+            "Kopieen: bepaalt hoeveel keer elk bestand naar de printer wordt verzonden.\n\n"
+            "Orientatie: kies automatisch, staand of liggend voor PDF's en afbeeldingen.\n\n"
+            "Bestanden toevoegen: opent een bestandskiezer om PDF-, Office- en afbeeldingsbestanden toe te voegen.\n\n"
+            "Slepen naar het venster: voeg bestanden toe door ze direct in de app te slepen.\n\n"
+            "Verwijderknop in de lijst: haalt alleen dat bestand uit de wachtrij.\n\n"
+            "Lijst leegmaken: verwijdert alle gekozen bestanden uit de app.\n\n"
+            "Print starten: verzendt alle bestanden in de getoonde volgorde naar de printerwachtrij.\n\n"
+            "Annuleren: stopt na het bestand dat op dat moment bezig is.\n\n"
+            "Updates zoeken: controleert of er een nieuwere versie beschikbaar is.\n\n"
+            "De app bevestigt dat bestanden naar de printerwachtrij zijn verzonden. De printerdriver verwerkt daarna de fysieke afdruk.",
+        )
 
     def cancel_printing(self) -> None:
         if self.worker is not None:
@@ -826,6 +848,7 @@ class MainWindow(QMainWindow):
             self.start_button.setText("Start")
             self.cancel_button.setText("Stop")
             self.update_button.setText("Updates")
+            self.help_button.setText("Help")
             self.table.setColumnHidden(1, True)
             self.table.setColumnWidth(2, 48)
             self.table.verticalHeader().setDefaultSectionSize(38)
@@ -849,6 +872,7 @@ class MainWindow(QMainWindow):
             self.start_button.setText("Print starten")
             self.cancel_button.setText("Annuleren")
             self.update_button.setText("Updates zoeken")
+            self.help_button.setText("Help")
             self.table.setColumnHidden(1, False)
             self.table.setColumnWidth(2, 58)
             self.table.verticalHeader().setDefaultSectionSize(44)
