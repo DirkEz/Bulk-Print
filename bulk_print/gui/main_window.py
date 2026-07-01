@@ -468,7 +468,7 @@ class MainWindow(QMainWindow):
         try:
             printers = list_printers()
         except Exception as exc:
-            QMessageBox.critical(self, "Printerfout", f"Printers konden niet worden geladen:\n{exc}")
+            self.show_error_popup("Printerfout", f"Printers konden niet worden geladen:\n{exc}")
             printers = []
         self.printer_combo.addItems(printers)
 
@@ -495,7 +495,7 @@ class MainWindow(QMainWindow):
             self.refresh_table()
             self.append_log(f"{added} bestand(en) toegevoegd.")
         if rejected:
-            QMessageBox.warning(self, "Niet toegevoegd", "\n".join(rejected))
+            self.show_warning_popup("Niet toegevoegd", "\n".join(rejected))
 
     def refresh_table(self) -> None:
         self.table.setRowCount(0)
@@ -539,10 +539,10 @@ class MainWindow(QMainWindow):
     def start_printing(self) -> None:
         printer = self.printer_combo.currentText().strip()
         if not printer:
-            QMessageBox.warning(self, "Geen printer", "Selecteer eerst een printer.")
+            self.show_warning_popup("Geen printer", "Selecteer eerst een printer.")
             return
         if not self.files:
-            QMessageBox.warning(self, "Geen bestanden", "Voeg eerst een of meer bestanden toe.")
+            self.show_warning_popup("Geen bestanden", "Voeg eerst een of meer bestanden toe.")
             return
         self.set_printing_state(True)
         self.progress.setValue(0)
@@ -562,12 +562,12 @@ class MainWindow(QMainWindow):
     def open_selected_printer_preferences(self) -> None:
         printer = self.printer_combo.currentText().strip()
         if not printer:
-            QMessageBox.warning(self, "Geen printer", "Selecteer eerst een printer.")
+            self.show_warning_popup("Geen printer", "Selecteer eerst een printer.")
             return
         try:
             open_printer_preferences(printer)
         except Exception as exc:
-            QMessageBox.warning(self, "Printerinstellingen", f"Printerinstellingen konden niet worden geopend:\n{exc}")
+            self.show_warning_popup("Printerinstellingen", f"Printerinstellingen konden niet worden geopend:\n{exc}")
 
     def cancel_printing(self) -> None:
         if self.worker is not None:
@@ -601,9 +601,9 @@ class MainWindow(QMainWindow):
     def show_result(self, title: str, failures: list[PrintFailure]) -> None:
         if failures:
             lines = [f"{failure.path.name}: {failure.message}" for failure in failures]
-            QMessageBox.warning(self, title, "Deze bestanden konden niet naar de printer worden verzonden:\n\n" + "\n".join(lines))
+            self.show_warning_popup(title, "Deze bestanden konden niet naar de printer worden verzonden:\n\n" + "\n".join(lines))
         else:
-            QMessageBox.information(self, title, "Alle bestanden zijn zonder fouten naar de printerwachtrij verzonden.")
+            self.show_info_popup(title, "Alle bestanden zijn zonder fouten naar de printerwachtrij verzonden.")
 
     def set_printing_state(self, printing: bool) -> None:
         self.add_button.setEnabled(not printing)
@@ -641,7 +641,7 @@ class MainWindow(QMainWindow):
     def handle_update_error(self, message: str, automatic: bool) -> None:
         if automatic:
             return
-        QMessageBox.warning(self, "Updates zoeken", f"Updatecontrole is mislukt:\n{message}")
+        self.show_warning_popup("Updates zoeken", f"Updatecontrole is mislukt:\n{message}")
         self.append_log(f"Updatecontrole mislukt: {message}")
 
     def handle_update_result(self, result: dict[str, Any], automatic: bool) -> None:
@@ -649,8 +649,7 @@ class MainWindow(QMainWindow):
         latest_version = result["latest_version"]
         if not result["available"]:
             if not automatic:
-                QMessageBox.information(
-                    self,
+                self.show_info_popup(
                     "Geen update beschikbaar",
                     f"Je gebruikt al de nieuwste versie.\n\nHuidige versie: {current_version}\nNieuwste versie: {latest_version}",
                 )
@@ -659,12 +658,11 @@ class MainWindow(QMainWindow):
 
         release = result["release"]
         title = release.get("name") or f"Versie {latest_version}"
-        answer = QMessageBox.question(
-            self,
+        answer = self.show_question_popup(
             "Update beschikbaar",
             f"Er is een nieuwe versie beschikbaar.\n\nHuidige versie: {current_version}\nNieuwe versie: {latest_version}\nRelease: {title}\n\nWil je deze update downloaden?",
         )
-        if answer != QMessageBox.Yes:
+        if answer != QMessageBox.StandardButton.Yes:
             self.append_log("Update overgeslagen.")
             return
         self.download_update(result["asset"])
@@ -685,21 +683,19 @@ class MainWindow(QMainWindow):
         self.update_button.setEnabled(True)
 
     def handle_update_download_error(self, message: str) -> None:
-        QMessageBox.warning(self, "Update downloaden", f"Update downloaden is mislukt:\n{message}")
+        self.show_warning_popup("Update downloaden", f"Update downloaden is mislukt:\n{message}")
         self.append_log(f"Update downloaden mislukt: {message}")
 
     def handle_update_downloaded(self, installer_path: object) -> None:
         path = Path(installer_path)
         self.append_log(f"Update gedownload: {path}")
         if not UpdateService.is_frozen():
-            QMessageBox.information(
-                self,
+            self.show_info_popup(
                 "Update gedownload",
                 f"De installer is gedownload naar:\n{path}\n\nAutomatisch installeren werkt alleen vanuit de geinstalleerde .exe.",
             )
             return
-        QMessageBox.information(
-            self,
+        self.show_info_popup(
             "Update klaar",
             "De app wordt nu gesloten. De installer werkt de app bij en start daarna opnieuw.",
         )
@@ -707,6 +703,73 @@ class MainWindow(QMainWindow):
 
     def append_log(self, message: str) -> None:
         self.log.append(message)
+
+    def show_info_popup(self, title: str, message: str) -> QMessageBox.StandardButton:
+        return self.show_popup(QMessageBox.Icon.Information, title, message)
+
+    def show_warning_popup(self, title: str, message: str) -> QMessageBox.StandardButton:
+        return self.show_popup(QMessageBox.Icon.Warning, title, message)
+
+    def show_error_popup(self, title: str, message: str) -> QMessageBox.StandardButton:
+        return self.show_popup(QMessageBox.Icon.Critical, title, message)
+
+    def show_question_popup(self, title: str, message: str) -> QMessageBox.StandardButton:
+        return self.show_popup(
+            QMessageBox.Icon.Question,
+            title,
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+
+    def show_popup(
+        self,
+        icon: QMessageBox.Icon,
+        title: str,
+        message: str,
+        buttons: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok,
+        default_button: QMessageBox.StandardButton = QMessageBox.StandardButton.Ok,
+    ) -> QMessageBox.StandardButton:
+        box = QMessageBox(self)
+        box.setOption(QMessageBox.Option.DontUseNativeDialog, True)
+        box.setIcon(icon)
+        box.setWindowTitle(title)
+        box.setText(message)
+        box.setStandardButtons(buttons)
+        box.setDefaultButton(default_button)
+        box.setStyleSheet(self.popup_stylesheet())
+        return QMessageBox.StandardButton(box.exec())
+
+    def popup_stylesheet(self) -> str:
+        return """
+        QMessageBox {
+            background: #f7fcff;
+            color: #142436;
+            font-family: Segoe UI;
+            font-size: 10.5pt;
+        }
+        QMessageBox QLabel {
+            color: #142436;
+            background: transparent;
+        }
+        QMessageBox QPushButton {
+            min-width: 84px;
+            min-height: 32px;
+            border-radius: 9px;
+            padding: 6px 14px;
+            font-weight: 600;
+            background: #ffffff;
+            border: 1px solid #bfdce9;
+            color: #20394d;
+        }
+        QMessageBox QPushButton:hover {
+            background: #effaff;
+            border-color: #69c7ec;
+        }
+        QMessageBox QPushButton:pressed {
+            background: #ddf4fd;
+        }
+        """
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():
@@ -721,8 +784,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self.worker is not None:
-            result = QMessageBox.question(self, "Verzenden actief", "Er worden nog bestanden naar de printer verzonden. Wil je annuleren en afsluiten?")
-            if result != QMessageBox.Yes:
+            result = self.show_question_popup("Verzenden actief", "Er worden nog bestanden naar de printer verzonden. Wil je annuleren en afsluiten?")
+            if result != QMessageBox.StandardButton.Yes:
                 event.ignore()
                 return
             self.worker.cancel()
