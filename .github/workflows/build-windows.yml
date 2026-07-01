@@ -1,0 +1,267 @@
+name: Build and Release Windows Installer
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release-windows:
+    runs-on: windows-latest
+    if: ${{ github.event_name != 'push' || !contains(github.event.head_commit.message, '[skip ci]') }}
+
+    steps:
+      - name: Checkout source repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine next version
+        id: version
+        shell: powershell
+        run: |
+          git fetch --tags --force
+
+          $versionPath = "bulk_print\__init__.py"
+          $currentVersion = "0.0.0"
+          $versionContent = Get-Content $versionPath -Raw
+
+          if ($versionContent -match '__version__\s*=\s*"(\d+\.\d+\.\d+)"') {
+            $currentVersion = $Matches[1]
+          }
+
+          $versions = @([version]$currentVersion)
+          $tags = git tag --list "v*.*.*"
+
+          foreach ($tag in $tags) {
+            if ($tag -match '^v(\d+\.\d+\.\d+)$') {
+              $versions += [version]$Matches[1]
+            }
+          }
+
+          $baseVersion = $versions | Sort-Object | Select-Object -Last 1
+          $nextPatch = $baseVersion.Build + 1
+          $nextVersion = "$($baseVersion.Major).$($baseVersion.Minor).$nextPatch"
+          $nextTag = "v$nextVersion"
+
+          "version=$nextVersion" >> $env:GITHUB_OUTPUT
+          "tag=$nextTag" >> $env:GITHUB_OUTPUT
+
+          Write-Host "Current file version: $currentVersion"
+          Write-Host "Base version: $baseVersion"
+          Write-Host "Next version: $nextVersion"
+          Write-Host "Next tag: $nextTag"
+
+      - name: Bump app version in repository
+        shell: powershell
+        env:
+          UPDATE_REPO: ${{ vars.UPDATE_RELEASE_REPO || github.repository }}
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          $versionPath = "bulk_print\__init__.py"
+          $settingsPath = "bulk_print\settings.py"
+
+          $content = Get-Content $versionPath -Raw
+          $content = $content -replace '__version__\s*=\s*".*"', "__version__ = `"$version`""
+
+          [System.IO.File]::WriteAllText(
+            $versionPath,
+            $content,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
+          $settings = Get-Content $settingsPath -Raw
+          $settings = $settings -replace 'os\.environ\.get\("BULK_PRINT_UPDATE_REPO", ".*"\)', "os.environ.get(`"BULK_PRINT_UPDATE_REPO`", `"$env:UPDATE_REPO`")"
+
+          [System.IO.File]::WriteAllText(
+            $settingsPath,
+            $settings,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add $versionPath $settingsPath
+
+          $changes = git status --porcelain
+
+          if (-not $changes) {
+            Write-Host "Geen versie-wijzigingen om te committen."
+            exit 0
+          }
+
+          git commit -m "Bump version to v$version [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
+
+      - name: Create tag in source repository
+        shell: powershell
+        run: |
+          git pull --ff-only
+
+          $tag = "${{ steps.version.outputs.tag }}"
+          $existingTag = git tag --list $tag
+
+          if ($existingTag) {
+            Write-Host "Tag $tag bestaat al."
+            exit 0
+          }
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git tag $tag
+          git push origin $tag
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller certifi
+
+      - name: Build app folder for installer
+        run: |
+          pyinstaller --clean --windowed --name BulkPrint --hidden-import=_socket --hidden-import=socket --hidden-import=ssl --hidden-import=_ssl --hidden-import=certifi --hidden-import=requests --hidden-import=urllib3 --hidden-import=fitz main.py
+
+      - name: Install Inno Setup
+        shell: powershell
+        run: |
+          choco install innosetup -y
+
+      - name: Build installer
+        shell: powershell
+        env:
+          APP_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          iscc installer\bulk-print.iss
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BulkPrint-installer-${{ steps.version.outputs.tag }}
+          path: dist/BulkPrint-Setup-v${{ steps.version.outputs.version }}.exe
+          if-no-files-found: error
+
+      - name: Create release in source repository
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $version = "${{ steps.version.outputs.version }}"
+          $installerPath = "dist\BulkPrint-Setup-v$version.exe"
+
+          gh release create $tag $installerPath `
+            --repo $env:GITHUB_REPOSITORY `
+            --title "Bulk Print $tag" `
+            --generate-notes
+
+      - name: Get generated release notes
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+
+          $body = gh release view $tag `
+            --repo $env:GITHUB_REPOSITORY `
+            --json body `
+            --jq ".body"
+
+          if (-not $body) {
+            $body = "Geen release notes beschikbaar."
+          }
+
+          $notes = @"
+          # Bulk Print $tag
+
+          $body
+          "@
+
+          New-Item -ItemType Directory -Force -Path "release_notes" | Out-Null
+          New-Item -ItemType Directory -Force -Path "release_notes\$tag" | Out-Null
+
+          [System.IO.File]::WriteAllText(
+            "release_notes.md",
+            $notes,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
+          [System.IO.File]::WriteAllText(
+            "release_notes\README.md",
+            $notes,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
+          [System.IO.File]::WriteAllText(
+            "release_notes\$tag\README.md",
+            $notes,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
+      - name: Create matching release in update repository
+        if: ${{ vars.UPDATE_RELEASE_REPO != '' }}
+        shell: powershell
+        env:
+          GH_TOKEN: ${{ secrets.TARGET_REPO_TOKEN }}
+          UPDATE_RELEASE_REPO: ${{ vars.UPDATE_RELEASE_REPO }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          $version = "${{ steps.version.outputs.version }}"
+          $installerPath = "dist\BulkPrint-Setup-v$version.exe"
+
+          gh release create $tag $installerPath `
+            --repo $env:UPDATE_RELEASE_REPO `
+            --title "Bulk Print $tag" `
+            --notes-file release_notes.md
+
+      - name: Checkout update repository
+        if: ${{ vars.UPDATE_RELEASE_REPO != '' }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.UPDATE_RELEASE_REPO }}
+          token: ${{ secrets.TARGET_REPO_TOKEN }}
+          path: target-release-repo
+          fetch-depth: 0
+
+      - name: Copy release notes to update repository
+        if: ${{ vars.UPDATE_RELEASE_REPO != '' }}
+        shell: powershell
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+
+          New-Item -ItemType Directory -Force -Path "target-release-repo\release_notes" | Out-Null
+          New-Item -ItemType Directory -Force -Path "target-release-repo\release_notes\$tag" | Out-Null
+
+          Copy-Item "release_notes\README.md" "target-release-repo\release_notes\README.md" -Force
+          Copy-Item "release_notes\$tag\README.md" "target-release-repo\release_notes\$tag\README.md" -Force
+
+      - name: Commit release notes to update repository
+        if: ${{ vars.UPDATE_RELEASE_REPO != '' }}
+        shell: powershell
+        working-directory: target-release-repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add release_notes
+
+          $changes = git status --porcelain
+
+          if (-not $changes) {
+            Write-Host "Geen release note wijzigingen om te committen."
+            exit 0
+          }
+
+          git commit -m "Add release notes for ${{ steps.version.outputs.tag }}"
+          git push
