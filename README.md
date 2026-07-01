@@ -2,6 +2,11 @@
 
 Een eenvoudige Python desktopapplicatie om meerdere bestanden in vaste volgorde naar een gekozen Windows-printer te sturen.
 
+Bedrijf: Deyvo  
+Auteur: Dirk Schaafstra
+
+Logo: Deyvo
+
 ## Ondersteunde bestanden
 
 - PDF
@@ -44,7 +49,7 @@ python -m bulk_print
 7. Klik op `Print starten`.
 8. Gebruik `Annuleren` om het proces na het huidige bestand te stoppen.
 
-Bij fouten gaat de applicatie door met het volgende bestand. Na afloop verschijnt een overzicht van bestanden die niet konden worden geprint.
+Bij fouten gaat de applicatie door met het volgende bestand. Na afloop verschijnt een overzicht van bestanden die niet naar de printer konden worden verzonden. De app bevestigt dat bestanden in de printerwachtrij zijn gezet; de printerdriver bepaalt daarna de fysieke afdruk.
 
 ## Updates
 
@@ -53,7 +58,7 @@ De applicatie toont linksonder de huidige versie en zoekt kort na het starten au
 Standaard gebruikt de updatechecker GitHub Releases via:
 
 ```text
-DirkEz/bulk-print-release
+DirkEz/bulk-print
 ```
 
 Voor een andere release-repository kun je deze omgevingsvariabelen zetten:

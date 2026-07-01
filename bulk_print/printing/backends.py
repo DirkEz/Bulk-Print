@@ -85,7 +85,7 @@ def print_pdf(path: Path, printer_name: str, settings: PrintSettings) -> None:
                 dc.EndPage()
             dc.EndDoc()
     except Exception as exc:
-        raise PrintError(f"PDF kon niet worden geprint: {exc}") from exc
+        raise PrintError(f"PDF kon niet naar de printer worden verzonden: {exc}") from exc
     finally:
         if document is not None:
             try:
@@ -115,7 +115,7 @@ def print_word(path: Path, printer_name: str, settings: PrintSettings) -> None:
             document = app.Documents.Open(str(path), ReadOnly=True, AddToRecentFiles=False)
             document.PrintOut(Background=False, Copies=settings.copies)
     except Exception as exc:
-        raise PrintError(f"Word-bestand kon niet worden geprint: {exc}") from exc
+        raise PrintError(f"Word-bestand kon niet naar de printer worden verzonden: {exc}") from exc
     finally:
         if document is not None:
             try:
@@ -145,7 +145,7 @@ def print_excel(path: Path, printer_name: str, settings: PrintSettings) -> None:
             workbook = app.Workbooks.Open(str(path), ReadOnly=True)
             workbook.PrintOut(Copies=settings.copies)
     except Exception as exc:
-        raise PrintError(f"Excel-bestand kon niet worden geprint: {exc}") from exc
+        raise PrintError(f"Excel-bestand kon niet naar de printer worden verzonden: {exc}") from exc
     finally:
         if workbook is not None:
             try:
@@ -174,7 +174,7 @@ def print_powerpoint(path: Path, printer_name: str, settings: PrintSettings) -> 
             presentation.PrintOptions.ActivePrinter = printer_name
             presentation.PrintOut(Copies=settings.copies)
     except Exception as exc:
-        raise PrintError(f"PowerPoint-bestand kon niet worden geprint: {exc}") from exc
+        raise PrintError(f"PowerPoint-bestand kon niet naar de printer worden verzonden: {exc}") from exc
     finally:
         if presentation is not None:
             try:
@@ -208,7 +208,7 @@ def print_image(path: Path, printer_name: str, settings: PrintSettings) -> None:
             dc.EndPage()
             dc.EndDoc()
     except Exception as exc:
-        raise PrintError(f"Afbeelding kon niet worden geprint: {exc}") from exc
+        raise PrintError(f"Afbeelding kon niet naar de printer worden verzonden: {exc}") from exc
     finally:
         if dc is not None:
             try:

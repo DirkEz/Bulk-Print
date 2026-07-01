@@ -1,6 +1,6 @@
 #define MyAppName "Bulk Print"
 #define MyAppVersion GetEnv("APP_VERSION")
-#define MyAppPublisher "Dirk Schaafstra"
+#define MyAppPublisher "Deyvo"
 #define MyAppExeName "BulkPrint.exe"
 
 [Setup]
@@ -13,6 +13,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dist
 OutputBaseFilename=BulkPrint-Setup-v{#MyAppVersion}
+SetupIconFile=..\assets\deyvo-logo.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

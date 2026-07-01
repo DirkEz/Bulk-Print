@@ -563,12 +563,12 @@ class MainWindow(QMainWindow):
     def file_finished(self, path: str, success: bool, message: str) -> None:
         name = Path(path).name
         if success:
-            self.append_log(f"Geprint: {name}")
+            self.append_log(f"Naar printer verzonden: {name}")
         else:
             self.append_log(f"Fout: {name} - {message}")
 
     def print_completed(self, failures: list[PrintFailure]) -> None:
-        self.show_result("Printen voltooid", failures)
+        self.show_result("Bestanden verzonden", failures)
 
     def print_cancelled(self, failures: list[PrintFailure]) -> None:
         self.show_result("Printen geannuleerd", failures)
@@ -580,9 +580,9 @@ class MainWindow(QMainWindow):
     def show_result(self, title: str, failures: list[PrintFailure]) -> None:
         if failures:
             lines = [f"{failure.path.name}: {failure.message}" for failure in failures]
-            QMessageBox.warning(self, title, "Deze bestanden konden niet worden geprint:\n\n" + "\n".join(lines))
+            QMessageBox.warning(self, title, "Deze bestanden konden niet naar de printer worden verzonden:\n\n" + "\n".join(lines))
         else:
-            QMessageBox.information(self, title, "Alle bestanden zijn verwerkt zonder fouten.")
+            QMessageBox.information(self, title, "Alle bestanden zijn zonder fouten naar de printerwachtrij verzonden.")
 
     def set_printing_state(self, printing: bool) -> None:
         self.add_button.setEnabled(not printing)
@@ -700,7 +700,7 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event: QCloseEvent) -> None:
         if self.worker is not None:
-            result = QMessageBox.question(self, "Printen actief", "Er wordt nog geprint. Wil je annuleren en afsluiten?")
+            result = QMessageBox.question(self, "Verzenden actief", "Er worden nog bestanden naar de printer verzonden. Wil je annuleren en afsluiten?")
             if result != QMessageBox.Yes:
                 event.ignore()
                 return
