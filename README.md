@@ -114,6 +114,8 @@ De installernaam is belangrijk voor automatische updates:
 BulkPrint-Setup-v<versie>.exe
 ```
 
+De zichtbare appnaam in Windows blijft `Bulk Print`; de versie wordt alleen gebruikt voor updates, releases en de installerbestandsnaam.
+
 ### Optionele aparte update-repository
 
 Als je updates via een aparte release-repository wilt aanbieden, stel dan in GitHub deze variabele en secret in:

@@ -7,6 +7,7 @@
 AppId={{BE3FA6EC-D649-4023-A150-B2D4320EDB91}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
+AppVerName={#MyAppName}
 AppPublisher={#MyAppPublisher}
 DefaultDirName={localappdata}\Programs\{#MyAppName}
 DefaultGroupName={#MyAppName}
