@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Any
 
 from PySide6.QtCore import QThread, QTimer, QSize, Qt, Signal
-from PySide6.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent
+from PySide6.QtGui import QCloseEvent, QDragEnterEvent, QDropEvent, QResizeEvent
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QApplication,
@@ -18,6 +18,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QProgressBar,
+    QScrollArea,
     QSpinBox,
     QStyle,
     QTableWidget,
@@ -91,6 +92,8 @@ class MainWindow(QMainWindow):
         self.version_label = QLabel(f"v{APP_VERSION}")
         self.progress = QProgressBar()
         self.log = QTextEdit()
+        self.compact_mode = False
+        self.layout_mode = ""
         self._build_ui()
         self._connect_signals()
         self._load_printers()
@@ -102,22 +105,24 @@ class MainWindow(QMainWindow):
         root = QVBoxLayout(central)
         root.setContentsMargins(28, 28, 28, 28)
         root.setSpacing(18)
+        self.root_layout = root
 
-        title = QLabel("Bulk Print")
-        title.setObjectName("Title")
-        subtitle = QLabel("Voeg documenten toe, kies een printer en print alles in dezelfde volgorde.")
-        subtitle.setObjectName("Subtitle")
+        self.title_label = QLabel("Bulk Print")
+        self.title_label.setObjectName("Title")
+        self.subtitle_label = QLabel("Voeg documenten toe, kies een printer en print alles in dezelfde volgorde.")
+        self.subtitle_label.setObjectName("Subtitle")
 
         header_text = QVBoxLayout()
         header_text.setSpacing(4)
-        header_text.addWidget(title)
-        header_text.addWidget(subtitle)
+        header_text.addWidget(self.title_label)
+        header_text.addWidget(self.subtitle_label)
 
         top_panel = QFrame()
         top_panel.setObjectName("Panel")
         top_layout = QVBoxLayout(top_panel)
         top_layout.setContentsMargins(18, 18, 18, 18)
         top_layout.setSpacing(14)
+        self.top_layout = top_layout
 
         printer_row = QHBoxLayout()
         printer_row.setSpacing(12)
@@ -163,6 +168,7 @@ class MainWindow(QMainWindow):
         file_layout = QVBoxLayout(file_panel)
         file_layout.setContentsMargins(16, 16, 16, 16)
         file_layout.setSpacing(12)
+        self.file_layout = file_layout
 
         self.drop_hint = QLabel("Sleep bestanden hierheen")
         self.drop_hint.setObjectName("DropHint")
@@ -180,6 +186,7 @@ class MainWindow(QMainWindow):
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(44)
         self.table.setShowGrid(False)
+        self.table.setMinimumHeight(210)
 
         file_layout.addWidget(self.drop_hint)
         file_layout.addWidget(self.table, 1)
@@ -189,6 +196,7 @@ class MainWindow(QMainWindow):
         status_layout = QVBoxLayout(status_panel)
         status_layout.setContentsMargins(16, 16, 16, 16)
         status_layout.setSpacing(12)
+        self.status_layout = status_layout
 
         status_row = QHBoxLayout()
         status_row.addWidget(self.current_label, 2)
@@ -235,9 +243,20 @@ class MainWindow(QMainWindow):
         root.addWidget(file_panel, 1)
         root.addWidget(status_panel)
         root.addLayout(footer_row)
-        self.setCentralWidget(central)
+        scroll_area = QScrollArea()
+        scroll_area.setObjectName("MainScroll")
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll_area.setWidget(central)
+        self.scroll_area = scroll_area
+        self.setCentralWidget(scroll_area)
         self.setStyleSheet(
             """
+            QScrollArea#MainScroll {
+                background: #f2f9fd;
+                border: 0;
+            }
             QWidget#AppRoot {
                 background: #f2f9fd;
             }
@@ -454,6 +473,7 @@ class MainWindow(QMainWindow):
             }
             """
         )
+        self.apply_responsive_layout(self.width(), self.height())
 
     def _connect_signals(self) -> None:
         self.add_button.clicked.connect(self.choose_files)
@@ -494,6 +514,7 @@ class MainWindow(QMainWindow):
         if added:
             self.refresh_table()
             self.append_log(f"{added} bestand(en) toegevoegd.")
+            QTimer.singleShot(0, self.scroll_to_file_list)
         if rejected:
             self.show_warning_popup("Niet toegevoegd", "\n".join(rejected))
 
@@ -517,6 +538,7 @@ class MainWindow(QMainWindow):
             cell_layout.addWidget(remove_button)
             self.table.setCellWidget(row, 2, cell)
         self.count_label.setText(f"Voltooid: 0 / {len(self.files)}")
+        self.update_list_visibility()
 
     def remove_file(self, path: Path) -> None:
         if self.worker is not None:
@@ -535,6 +557,7 @@ class MainWindow(QMainWindow):
         self.progress.setValue(0)
         self.current_label.setText("Huidig bestand: -")
         self.append_log("Lijst leeggemaakt.")
+        self.update_list_visibility()
 
     def start_printing(self) -> None:
         printer = self.printer_combo.currentText().strip()
@@ -770,6 +793,83 @@ class MainWindow(QMainWindow):
             background: #ddf4fd;
         }
         """
+
+    def resizeEvent(self, event: QResizeEvent) -> None:
+        super().resizeEvent(event)
+        self.apply_responsive_layout(event.size().width(), event.size().height())
+
+    def apply_responsive_layout(self, width: int, height: int) -> None:
+        compact = width < 760
+        very_compact = width < 580
+        short = height < 680
+        mode = "very_compact" if very_compact else "compact" if compact else "regular"
+        if short:
+            mode = f"{mode}_short"
+        if mode == self.layout_mode:
+            return
+        self.compact_mode = compact
+        self.layout_mode = mode
+
+        if compact:
+            self.root_layout.setContentsMargins(14, 14, 14, 14)
+            self.root_layout.setSpacing(10)
+            self.top_layout.setContentsMargins(12, 12, 12, 12)
+            self.top_layout.setSpacing(10)
+            self.file_layout.setContentsMargins(10, 10, 10, 10)
+            self.file_layout.setSpacing(8)
+            self.status_layout.setContentsMargins(10, 10, 10, 10)
+            self.status_layout.setSpacing(8)
+            self.subtitle_label.setVisible(False)
+            self.printer_settings_button.setText("Instellingen")
+            self.add_button.setText("Toevoegen")
+            self.clear_button.setText("Leegmaken")
+            self.start_button.setText("Start")
+            self.cancel_button.setText("Stop")
+            self.update_button.setText("Updates")
+            self.table.setColumnHidden(1, True)
+            self.table.setColumnWidth(2, 48)
+            self.table.verticalHeader().setDefaultSectionSize(38)
+            self.table.setMinimumHeight(240 if short else 220)
+            self.drop_hint.setMinimumHeight(34 if short else 42)
+            self.log.setVisible(not short)
+            self.log.setMinimumHeight(70 if very_compact else 86)
+        else:
+            self.root_layout.setContentsMargins(28, 28, 28, 28)
+            self.root_layout.setSpacing(18)
+            self.top_layout.setContentsMargins(18, 18, 18, 18)
+            self.top_layout.setSpacing(14)
+            self.file_layout.setContentsMargins(16, 16, 16, 16)
+            self.file_layout.setSpacing(12)
+            self.status_layout.setContentsMargins(16, 16, 16, 16)
+            self.status_layout.setSpacing(12)
+            self.subtitle_label.setVisible(True)
+            self.printer_settings_button.setText("Printerinstellingen")
+            self.add_button.setText("Bestanden toevoegen")
+            self.clear_button.setText("Lijst leegmaken")
+            self.start_button.setText("Print starten")
+            self.cancel_button.setText("Annuleren")
+            self.update_button.setText("Updates zoeken")
+            self.table.setColumnHidden(1, False)
+            self.table.setColumnWidth(2, 58)
+            self.table.verticalHeader().setDefaultSectionSize(44)
+            self.table.setMinimumHeight(210)
+            self.drop_hint.setMinimumHeight(54)
+            self.log.setVisible(True)
+            self.log.setMinimumHeight(116)
+        self.update_list_visibility()
+
+    def update_list_visibility(self) -> None:
+        has_files = bool(self.files)
+        self.drop_hint.setVisible(not has_files)
+        if has_files and self.compact_mode:
+            self.table.setMinimumHeight(260)
+        elif self.compact_mode:
+            self.table.setMinimumHeight(220)
+        else:
+            self.table.setMinimumHeight(210)
+
+    def scroll_to_file_list(self) -> None:
+        self.scroll_area.ensureWidgetVisible(self.table, 0, 24)
 
     def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         if event.mimeData().hasUrls():

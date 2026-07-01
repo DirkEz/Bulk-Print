@@ -25,6 +25,7 @@ def main() -> int:
     window = MainWindow()
     if icon_path.exists():
         window.setWindowIcon(QIcon(str(icon_path)))
+    window.setMinimumSize(500, 560)
     window.resize(980, 680)
     window.show()
     return app.exec()
