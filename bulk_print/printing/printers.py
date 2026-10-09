@@ -15,6 +15,17 @@ def list_printers() -> list[str]:
     return names
 
 
+def default_printer() -> str:
+    if sys.platform != "win32":
+        return ""
+    import win32print
+
+    try:
+        return win32print.GetDefaultPrinter()
+    except win32print.error:
+        return ""
+
+
 def open_printer_preferences(printer_name: str) -> None:
     if sys.platform != "win32":
         raise RuntimeError("Printerinstellingen zijn alleen beschikbaar op Windows.")

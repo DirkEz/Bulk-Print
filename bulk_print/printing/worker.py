@@ -47,6 +47,7 @@ class PrintWorker(QThread):
                 failures.append(PrintFailure(path, message))
                 self.file_finished.emit(str(path), False, message)
                 completed_count += 1
+                self.progress_changed.emit(str(path), completed_count, total)
                 continue
             try:
                 print_file(validation.path, self.printer_name, self.settings)

@@ -42,14 +42,16 @@ python -m bulk_print
 
 1. Start de applicatie.
 2. Kies een printer in de dropdown.
-3. Open eventueel `Printerinstellingen` om de Windows-voorkeuren van de gekozen printer aan te passen.
+3. Open eventueel het instellingenknopje naast de printer om de Windows-voorkeuren aan te passen. Met het vernieuwknopje laad je de printers opnieuw; de app onthoudt je laatst gekozen printer.
 4. Kies het aantal kopieën en de gewenste oriëntatie.
 5. Voeg bestanden toe via de knop `Bestanden toevoegen` of sleep bestanden naar het venster.
-6. Controleer de lijst en verwijder bestanden indien nodig.
+6. Selecteer bestanden en gebruik de pijlen om de printvolgorde aan te passen. Met Ctrl of Shift selecteer je meerdere bestanden; `Verwijderen` haalt de selectie uit de lijst.
 7. Klik op `Print starten`.
-8. Gebruik `Annuleren` om het proces na het huidige bestand te stoppen.
+8. Gebruik `Stoppen` om het proces na het huidige bestand te stoppen. Al verzonden opdrachten blijven in de Windows-printerwachtrij.
 
-Bij fouten gaat de applicatie door met het volgende bestand. Na afloop verschijnt een overzicht van bestanden die niet naar de printer konden worden verzonden. De app bevestigt dat bestanden in de printerwachtrij zijn gezet; de printerdriver bepaalt daarna de fysieke afdruk.
+De status staat naast elk bestand. Bij fouten gaat de applicatie door met het volgende bestand en kun je met `Mislukte opnieuw proberen` alleen die bestanden opnieuw verzenden. `Alles opnieuw printen` verzendt de volledige lijst opnieuw, inclusief eerder verzonden bestanden. Meldingen staan onder de inklapbare knop `Details`, die bij fouten automatisch opent.
+
+Sneltoetsen: `Ctrl+O` voor toevoegen, `Ctrl+P` voor printen, `Delete` voor de geselecteerde bestanden verwijderen en `Alt+↑` / `Alt+↓` voor verplaatsen. De app bevestigt dat bestanden in de printerwachtrij zijn gezet; de printerdriver bepaalt daarna de fysieke afdruk. Oriëntatie geldt voor PDF's en afbeeldingen; Office gebruikt de documentinstellingen.
 
 ## Updates
 
@@ -70,6 +72,14 @@ python -m bulk_print
 ```
 
 Automatisch installeren werkt alleen wanneer de app als geïnstalleerde Windows `.exe` draait. Vanuit `python -m bulk_print` wordt de installer wel gedownload, maar niet automatisch gestart.
+
+## Controles voor ontwikkeling
+
+```powershell
+python -m unittest discover -s tests -v
+```
+
+De tests controleren onder andere de printvolgorde, stoppen, opnieuw proberen, printerselectie en de compacte interface. Ze gebruiken een gesimuleerde printeraanroep en versturen geen echte printopdrachten. Fysiek printen en Office-integratie moeten op Windows met een printer worden gecontroleerd.
 
 ## Windows installer bouwen
 
